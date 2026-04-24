@@ -1,0 +1,48 @@
+{
+  "name": "collab-code",
+  "displayName": "CollabCode",
+  "description": "Real-time collaborative editing for VS Code",
+  "version": "0.1.0",
+  "engines": { "vscode": "^1.85.0" },
+  "categories": ["Other"],
+  "activationEvents": ["onStartupFinished"],
+  "main": "./src/extension.js",
+  "contributes": {
+    "commands": [
+      { "command": "collabcode.startSession", "title": "CollabCode: Start Session" },
+      { "command": "collabcode.joinSession",  "title": "CollabCode: Join Session" },
+      { "command": "collabcode.leaveSession", "title": "CollabCode: Leave Session" },
+      { "command": "collabcode.copyInvite",   "title": "CollabCode: Copy Invite Link" }
+    ],
+    "viewsContainers": {
+      "activitybar": [
+        { "id": "collabcode", "title": "CollabCode", "icon": "$(organization)" }
+      ]
+    },
+    "views": {
+      "collabcode": [
+        { "id": "collabcode.sessions", "name": "Sessions" }
+      ]
+    },
+    "configuration": {
+      "title": "CollabCode",
+      "properties": {
+        "collabcode.serverUrl": {
+          "type": "string",
+          "default": "ws://localhost:4000/collab",
+          "description": "WebSocket URL of the CollabCode sync server"
+        },
+        "collabcode.apiUrl": {
+          "type": "string",
+          "default": "http://localhost:4000/api",
+          "description": "REST API base URL"
+        }
+      }
+    }
+  },
+  "dependencies": {
+    "yjs": "^13.6.14",
+    "y-websocket": "^1.5.4",
+    "axios": "^1.7.2"
+  }
+}

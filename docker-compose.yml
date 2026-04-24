@@ -1,0 +1,38 @@
+version: "3.8"
+
+services:
+  mongo:
+    image: mongo:7
+    container_name: collab_mongo
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+    environment:
+      MONGO_INITDB_DATABASE: collabedit
+
+  server:
+    build: ./packages/server
+    container_name: collab_server
+    ports:
+      - "4000:4000"
+    depends_on:
+      - mongo
+    environment:
+      MONGO_URI: mongodb://mongo:27017/collabedit
+      JWT_SECRET: change_this_secret
+      PORT: 4000
+      CLIENT_URL: http://localhost:5173
+    volumes:
+      - ./packages/server/uploads:/app/uploads
+
+  web:
+    build: ./packages/web-app
+    container_name: collab_web
+    ports:
+      - "5173:5173"
+    depends_on:
+      - server
+
+volumes:
+  mongo_data:

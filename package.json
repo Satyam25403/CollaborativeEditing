@@ -1,0 +1,19 @@
+{
+  "name": "collab-edit",
+  "version": "1.0.0",
+  "private": true,
+  "workspaces": [
+    "packages/server",
+    "packages/vscode-ext",
+    "packages/web-app"
+  ],
+  "scripts": {
+    "dev:server": "npm run dev --workspace=packages/server",
+    "dev:web": "npm run dev --workspace=packages/web-app",
+    "dev": "concurrently \"npm run dev:server\" \"npm run dev:web\"",
+    "install:all": "npm install"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.0"
+  }
+}
