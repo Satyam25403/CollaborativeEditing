@@ -1,0 +1,30 @@
+.dashboard { min-height: 100vh; display: flex; flex-direction: column; }
+
+.dash-header { display: flex; align-items: center; justify-content: space-between; padding: 14px 28px; background: #1a1d27; border-bottom: 1px solid #2a2d3e; }
+.dash-logo { font-size: 18px; font-weight: 700; }
+.dash-user { display: flex; align-items: center; gap: 10px; }
+.dash-avatar { width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: #fff; font-weight: 700; font-size: 14px; }
+.dash-logout { background: #2a2d3e; color: #e2e8f0; padding: 6px 12px; border-radius: 6px; font-size: 13px; }
+.dash-logout:hover { background: #ef4444; }
+
+.dash-body { flex: 1; padding: 32px; display: flex; flex-direction: column; gap: 40px; max-width: 900px; width: 100%; margin: 0 auto; }
+
+.dash-section h2 { font-size: 18px; font-weight: 700; margin-bottom: 16px; }
+
+.dash-new-session { display: flex; gap: 10px; margin-bottom: 16px; }
+.dash-new-session input { flex: 1; }
+.dash-btn-primary { background: #6366f1; color: #fff; padding: 8px 18px; border-radius: 8px; font-weight: 600; }
+.dash-btn-primary:hover { background: #4f46e5; }
+
+.dash-upload-btn { display: inline-flex; align-items: center; gap: 6px; background: #2a2d3e; color: #e2e8f0; padding: 8px 16px; border-radius: 8px; cursor: pointer; font-size: 14px; margin-bottom: 16px; }
+.dash-upload-btn:hover { background: #6366f1; }
+
+.dash-cards { display: flex; flex-direction: column; gap: 8px; }
+.dash-card { display: flex; align-items: center; gap: 14px; background: #1a1d27; border: 1px solid #2a2d3e; border-radius: 10px; padding: 14px 16px; cursor: pointer; transition: border-color 0.15s; }
+.dash-card:hover { border-color: #6366f1; }
+.dash-card-icon { font-size: 22px; }
+.dash-card-info { flex: 1; display: flex; flex-direction: column; gap: 2px; }
+.dash-card-info strong { font-size: 14px; }
+.dash-card-info span  { font-size: 12px; color: #94a3b8; }
+.dash-card-arrow { color: #94a3b8; font-size: 18px; }
+.dash-empty { color: #94a3b8; font-size: 14px; padding: 12px 0; }
