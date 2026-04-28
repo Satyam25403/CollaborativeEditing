@@ -1,5 +1,5 @@
 const express = require('express');
-const { v4: uuidv4 } = require('crypto').randomUUID ? { v4: () => require('crypto').randomUUID() } : require('crypto');
+const { randomUUID } = require('crypto');
 const Session = require('../models/Session');
 const authMiddleware = require('../middleware/auth');
 
@@ -23,7 +23,7 @@ router.post('/', authMiddleware, async (req, res) => {
     const { name, isPublic } = req.body;
     if (!name) return res.status(400).json({ error: 'Session name required' });
 
-    const roomId = require('crypto').randomUUID();
+    const roomId = randomUUID();
     const session = await Session.create({
       roomId,
       name,

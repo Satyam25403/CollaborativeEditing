@@ -1,4 +1,4 @@
-const * as Y = require('yjs');
+const Y = require('yjs');
 const { WebsocketProvider } = require('y-websocket');
 const vscode = require('vscode');
 
