@@ -14,7 +14,10 @@ const inviteRoutes = require('./routes/invites');
 const app = express();
 const server = http.createServer(app);
 
-app.use(cors({ origin: process.env.CLIENT_URL, credentials: true }));
+app.use(cors({
+  origin: [process.env.CLIENT_URL, 'vscode-webview://'],
+  credentials: true
+}));
 app.use(express.json());
 app.use('/uploads', express.static('uploads'));
 

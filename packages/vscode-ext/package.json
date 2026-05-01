@@ -10,9 +10,10 @@
   "contributes": {
     "commands": [
       { "command": "collabcode.startSession", "title": "CollabCode: Start Session" },
-      { "command": "collabcode.joinSession",  "title": "CollabCode: Join Session" },
+      { "command": "collabcode.joinSession",  "title": "CollabCode: Join Session"  },
       { "command": "collabcode.leaveSession", "title": "CollabCode: Leave Session" },
-      { "command": "collabcode.copyInvite",   "title": "CollabCode: Copy Invite Link" }
+      { "command": "collabcode.copyInvite",   "title": "CollabCode: Copy Invite Link" },
+      { "command": "collabcode.logout",       "title": "CollabCode: Logout" }
     ],
     "viewsContainers": {
       "activitybar": [
@@ -43,6 +44,7 @@
   "dependencies": {
     "yjs": "^13.6.14",
     "y-websocket": "^1.5.4",
-    "axios": "^1.7.2"
+    "axios": "^1.7.2",
+    "ws": "^8.17.0"
   }
 }
