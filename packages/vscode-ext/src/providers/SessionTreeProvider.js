@@ -18,8 +18,10 @@ class SessionItem extends vscode.TreeItem {
 }
 
 class SessionTreeProvider {
-  constructor(apiUrl) {
+  // BUG 14 FIX: accept a getToken function instead of calling an unregistered command
+  constructor(apiUrl, getToken) {
     this.apiUrl = apiUrl;
+    this.getToken = getToken;
     this._onDidChangeTreeData = new vscode.EventEmitter();
     this.onDidChangeTreeData = this._onDidChangeTreeData.event;
     this._sessions = [];
@@ -35,7 +37,7 @@ class SessionTreeProvider {
 
   async getChildren() {
     try {
-      const token = await vscode.commands.executeCommand('collabcode.getToken');
+      const token = this.getToken();
       if (!token) return [new vscode.TreeItem('Log in to see sessions')];
 
       const res = await axios.get(`${this.apiUrl}/sessions`, {

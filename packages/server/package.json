@@ -7,7 +7,8 @@
     "dev": "nodemon src/index.js"
   },
   "dependencies": {
-    "@hocuspocus/server": "^2.13.0",
+    "@hocuspocus/extension-logger": "^4.0.0",
+    "@hocuspocus/server": "^4.0.0",
     "bcryptjs": "^2.4.3",
     "cors": "^2.8.5",
     "dotenv": "^16.4.5",

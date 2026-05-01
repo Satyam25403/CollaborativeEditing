@@ -1,6 +1,4 @@
 .env
 **/.env
 ./node_modules/
-./packages/server/node_modules/
-./packages/web-app/node_modules/
-./packages/vscode-ext/node_modules/
+**/node_modules/

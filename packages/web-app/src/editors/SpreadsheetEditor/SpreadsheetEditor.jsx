@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState } from 'react';
 import * as Y from 'yjs';
 import './SpreadsheetEditor.css';
 
@@ -25,7 +25,7 @@ export default function SpreadsheetEditor({ ydoc }) {
     yGrid.observe(update);
     update();
     return () => yGrid.unobserve(update);
-  }, [yGrid]);
+  }, [ydoc]);
 
   function selectCell(row, col) {
     setSelected({ row, col });

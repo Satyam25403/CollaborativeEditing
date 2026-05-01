@@ -36,8 +36,9 @@ export default function PptxEditor({ ydoc, provider }) {
 
     ySlides.observeDeep(update);
     update();
+    update();
     return () => ySlides.unobserveDeep(update);
-  }, [ySlides]);
+  }, [ydoc]);
 
   // Render active slide to canvas
   useEffect(() => {

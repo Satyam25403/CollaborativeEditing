@@ -2,7 +2,8 @@ const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
 
-const uploadDir = process.env.UPLOAD_DIR || 'uploads';
+// BUG-K FIX: use absolute path so res.download() works regardless of cwd
+const uploadDir = path.resolve(process.cwd(), process.env.UPLOAD_DIR || 'uploads');
 if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true });
 
 const storage = multer.diskStorage({
@@ -13,23 +14,24 @@ const storage = multer.diskStorage({
   }
 });
 
+const ALLOWED_MIMES = [
+  'application/pdf',
+  'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+  'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+  'text/plain',
+  'text/markdown',
+  'image/png',
+  'image/jpeg',
+  'image/gif',
+  'image/webp'
+];
+
 const fileFilter = (req, file, cb) => {
-  const allowed = [
-    'application/pdf',
-    'application/vnd.openxmlformats-officedocument.presentationml.presentation',
-    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-    'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-    'text/plain',
-    'text/markdown',
-    'image/png',
-    'image/jpeg',
-    'image/gif',
-    'image/webp'
-  ];
-  if (allowed.includes(file.mimetype)) {
+  if (ALLOWED_MIMES.includes(file.mimetype)) {
     cb(null, true);
   } else {
-    cb(new Error(`File type ${file.mimetype} not allowed`), false);
+    cb(new Error(`File type "${file.mimetype}" not allowed`), false);
   }
 };
 

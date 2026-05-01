@@ -21,6 +21,8 @@ export default defineConfig({
     }
   },
   optimizeDeps: {
-    include: ['yjs', 'y-websocket', 'y-protocols']
+    // y-protocols has no root export — removing it from here fixes the Vite error.
+    // y-websocket internally imports y-protocols/*, which Vite handles fine on its own.
+    include: ['yjs', 'y-websocket']
   }
 });

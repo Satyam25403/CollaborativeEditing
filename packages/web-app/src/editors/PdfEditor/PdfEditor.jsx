@@ -3,32 +3,39 @@ import * as pdfjsLib from 'pdfjs-dist';
 import CursorLayer from '../../presence/CursorLayer.jsx';
 import './PdfEditor.css';
 
-// Point pdf.js worker at the CDN build
-pdfjsLib.GlobalWorkerOptions.workerSrc =
-  'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.3.136/pdf.worker.min.mjs';
+// BUG-U FIX: use the worker bundled with pdfjs-dist instead of a CDN URL
+// This avoids version mismatch between installed package and CDN
+import workerUrl from 'pdfjs-dist/build/pdf.worker.min.mjs?url';
+pdfjsLib.GlobalWorkerOptions.workerSrc = workerUrl;
 
 export default function PdfEditor({ document: doc, ydoc, provider }) {
   const containerRef = useRef(null);
   const canvasRef = useRef(null);
+  const pdfRef = useRef(null);
   const [numPages, setNumPages] = useState(0);
   const [currentPage, setCurrentPage] = useState(1);
   const [scale, setScale] = useState(1.4);
   const [annotations, setAnnotations] = useState([]);
   const [addingNote, setAddingNote] = useState(false);
 
-  // Yjs shared array of annotation objects
   const yAnnotations = ydoc ? ydoc.getArray('annotations') : null;
 
   // Load PDF from server
   useEffect(() => {
-    if (!doc?.filePath && !doc?._id) return;
+    if (!doc?._id) return;
     const url = `/api/files/${doc._id}/download`;
 
-    pdfjsLib.getDocument(url).promise.then(pdf => {
+    pdfjsLib.getDocument({ url }).promise.then(pdf => {
+      pdfRef.current = pdf;
       setNumPages(pdf.numPages);
-      renderPage(pdf, currentPage);
-    });
-  }, [doc]);
+      renderPage(pdf, 1);
+    }).catch(err => console.error('[PdfEditor] Load error:', err));
+  }, [doc?._id]);
+
+  // Re-render when page or scale changes
+  useEffect(() => {
+    if (pdfRef.current) renderPage(pdfRef.current, currentPage);
+  }, [currentPage, scale]);
 
   async function renderPage(pdf, pageNum) {
     const page = await pdf.getPage(pageNum);
@@ -47,7 +54,7 @@ export default function PdfEditor({ document: doc, ydoc, provider }) {
     yAnnotations.observe(update);
     update();
     return () => yAnnotations.unobserve(update);
-  }, [yAnnotations]);
+  }, [ydoc]);
 
   function handleCanvasClick(e) {
     if (!addingNote || !yAnnotations) return;
@@ -58,8 +65,10 @@ export default function PdfEditor({ document: doc, ydoc, provider }) {
     if (!text) return;
     yAnnotations.push([{
       id: crypto.randomUUID(),
-      x, y, page: currentPage,
-      text, color: '#FFFF00',
+      x, y,
+      page: currentPage,
+      text,
+      color: '#FFFF00',
       author: provider?.awareness?.getLocalState()?.user?.name || 'You',
       createdAt: Date.now()
     }]);
@@ -83,16 +92,16 @@ export default function PdfEditor({ document: doc, ydoc, provider }) {
       </div>
 
       <div className="pdf-canvas-wrap" ref={containerRef} style={{ position: 'relative' }}>
-        <canvas ref={canvasRef} onClick={handleCanvasClick} style={{ cursor: addingNote ? 'crosshair' : 'default' }} />
-
-        {/* Annotation stickies */}
+        <canvas
+          ref={canvasRef}
+          onClick={handleCanvasClick}
+          style={{ cursor: addingNote ? 'crosshair' : 'default', display: 'block' }}
+        />
         {annotations.filter(a => a.page === currentPage).map(a => (
           <div key={a.id} className="pdf-annotation" style={{ left: a.x, top: a.y, background: a.color }}>
             <strong>{a.author}:</strong> {a.text}
           </div>
         ))}
-
-        {/* Remote cursors */}
         <CursorLayer provider={provider} containerRef={containerRef} />
       </div>
     </div>

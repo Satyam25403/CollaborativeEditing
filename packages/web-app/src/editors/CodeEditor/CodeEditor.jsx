@@ -21,7 +21,8 @@ export default function CodeEditor({ document, ydoc, provider }) {
 
     const lang = LANG_MAP[(document?.fileType || 'txt').toLowerCase()] || 'plaintext';
 
-    editorRef.current = monaco.editor.create(containerRef.current, {
+    // BUG-H FIX: create editor instance first, then pass the INSTANCE (not ref) to MonacoBinding
+    const editor = monaco.editor.create(containerRef.current, {
       value: '',
       language: lang,
       theme: 'vs-dark',
@@ -33,13 +34,16 @@ export default function CodeEditor({ document, ydoc, provider }) {
       fontFamily: "'JetBrains Mono', 'Fira Code', 'Cascadia Code', monospace",
       fontLigatures: true
     });
+    editorRef.current = editor;
 
     const ytext = ydoc.getText('content');
+
+    // MonacoBinding takes: (Y.Text, ITextModel, Set<IEditor>, Awareness|null)
     bindingRef.current = new MonacoBinding(
       ytext,
-      editorRef.current.getModel(),
-      new Set([editorRef.current]),
-      provider?.awareness
+      editor.getModel(),
+      new Set([editor]),       // pass the editor INSTANCE, not the ref
+      provider?.awareness ?? null
     );
 
     return () => {

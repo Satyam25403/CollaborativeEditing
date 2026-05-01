@@ -16,12 +16,13 @@ function activate(context) {
   const serverUrl = config.get('serverUrl');
   const apiUrl = config.get('apiUrl');
 
-  // Providers
-  const sessionTree = new SessionTreeProvider(apiUrl);
   const cursorProvider = new CursorDecorationProvider();
   statusBar = new StatusBarProvider();
 
-  // Register tree view
+  // BUG 14 FIX: pass a getToken function directly — no unregistered command needed
+  const getToken = () => context.globalState.get('collabcode.token') || null;
+  const sessionTree = new SessionTreeProvider(apiUrl, getToken);
+
   vscode.window.registerTreeDataProvider('collabcode.sessions', sessionTree);
   context.subscriptions.push(statusBar.item);
 
@@ -29,8 +30,8 @@ function activate(context) {
 
   context.subscriptions.push(
     vscode.commands.registerCommand('collabcode.startSession', async () => {
-      const token = await getStoredToken(context);
-      if (!token) return promptLogin(context, apiUrl);
+      const token = getToken();
+      if (!token) return promptLogin(context, apiUrl, getToken);
 
       const name = await vscode.window.showInputBox({ prompt: 'Session name' });
       if (!name) return;
@@ -48,21 +49,22 @@ function activate(context) {
   );
 
   context.subscriptions.push(
-    vscode.commands.registerCommand('collabcode.joinSession', async () => {
-      const token = await getStoredToken(context);
-      if (!token) return promptLogin(context, apiUrl);
+    vscode.commands.registerCommand('collabcode.joinSession', async (roomIdArg) => {
+      const token = getToken();
+      if (!token) return promptLogin(context, apiUrl, getToken);
 
-      const roomId = await vscode.window.showInputBox({ prompt: 'Enter Room ID or invite link' });
+      // Can be called from tree item (passes roomId) or command palette (prompt)
+      const roomId = roomIdArg || await vscode.window.showInputBox({ prompt: 'Enter Room ID or invite link' });
       if (!roomId) return;
 
-      const editor = vscode.window.activeTextEditor;
+      let editor = vscode.window.activeTextEditor;
       if (!editor) {
         const doc = await vscode.workspace.openTextDocument({ content: '', language: 'plaintext' });
-        await vscode.window.showTextDocument(doc);
+        editor = await vscode.window.showTextDocument(doc);
       }
 
       yjsProvider = new YjsProvider(serverUrl, token, cursorProvider);
-      await yjsProvider.connect(roomId, vscode.window.activeTextEditor);
+      await yjsProvider.connect(roomId, editor);
 
       statusBar.setActive(roomId);
       vscode.window.showInformationMessage(`CollabCode: Joined room "${roomId}"`);
@@ -96,11 +98,7 @@ function deactivate() {
   if (statusBar) statusBar.item.dispose();
 }
 
-async function getStoredToken(context) {
-  return context.globalState.get('collabcode.token') || null;
-}
-
-async function promptLogin(context, apiUrl) {
+async function promptLogin(context, apiUrl, getToken) {
   const choice = await vscode.window.showInformationMessage(
     'CollabCode: Please log in first',
     'Log in'
@@ -108,7 +106,7 @@ async function promptLogin(context, apiUrl) {
   if (choice === 'Log in') {
     InvitePanel.createOrShow(context.extensionUri, apiUrl, async (token) => {
       await context.globalState.update('collabcode.token', token);
-      vscode.window.showInformationMessage('CollabCode: Logged in');
+      vscode.window.showInformationMessage('CollabCode: Logged in successfully');
     });
   }
 }
