@@ -1,32 +1,43 @@
+// Hocuspocus v4 correct API: new Hocuspocus({ ...config })
+// Server.configure() does NOT exist in v4 — use constructor options directly
 const { Hocuspocus } = require('@hocuspocus/server');
 const { Logger }     = require('@hocuspocus/extension-logger');
 const { applyUpdate, encodeStateAsUpdate } = require('yjs');
 const WebSocket      = require('ws');
 const Document       = require('../models/Document');
 const jwt            = require('jsonwebtoken');
+const { userJoined, userLeft } = require('./presence');
 
 let hocuspocus;
 
 function startHocuspocus(httpServer) {
-  // Hocuspocus v2: instantiate then call configure() on the instance
-  hocuspocus = new Hocuspocus();
-
-  hocuspocus.configure({
+  // v4: pass all hooks directly into the constructor
+  hocuspocus = new Hocuspocus({
     extensions: [new Logger()],
 
-    async onConnect({ documentName, requestParameters, requestHeaders }) {
-      const token =
-        requestParameters.get('token') ||
-        (requestHeaders.authorization || '').replace('Bearer ', '');
+    async onAuthenticate({ token, documentName }) {
+      // Hocuspocus v4 uses onAuthenticate (not onConnect) for auth
+      const rawToken =
+        (typeof token === 'string' ? token : null) ||
+        '';
 
-      if (!token) throw new Error('Authentication required');
+      if (!rawToken) throw new Error('Authentication required');
 
       try {
-        const user = jwt.verify(token, process.env.JWT_SECRET);
-        console.log(`[Hocuspocus] ${user.name} joined room: ${documentName}`);
+        const user = jwt.verify(rawToken, process.env.JWT_SECRET);
+        console.log(`[Hocuspocus] ${user.name} authenticated for room: ${documentName}`);
+        // Return context — accessible as context.user in other hooks
         return { user };
       } catch {
         throw new Error('Invalid or expired token');
+      }
+    },
+
+    async onConnect({ documentName, context }) {
+      // FIX BUG 13: wire presence so userJoined is actually called
+      if (context?.user) {
+        userJoined(documentName, context.user);
+        console.log(`[Hocuspocus] ${context.user.name} joined room: ${documentName}`);
       }
     },
 
@@ -42,12 +53,22 @@ function startHocuspocus(httpServer) {
       }
     },
 
-    async onStoreDocument({ documentName, document }) {
+    async onStoreDocument({ documentName, document, context }) {
       try {
         const state = Buffer.from(encodeStateAsUpdate(document));
+
+        // FIX BUG 14: set owner on upsert so the required field is populated;
+        // $setOnInsert only runs when creating a new document (not on updates)
         await Document.findOneAndUpdate(
           { name: documentName },
-          { yjsState: state, updatedAt: Date.now() },
+          {
+            $set: { yjsState: state, updatedAt: Date.now() },
+            $setOnInsert: {
+              owner:    context?.user?._id || null,
+              fileType: 'text',
+              mimeType: 'text/plain'
+            }
+          },
           { upsert: true, new: true }
         );
         console.log(`[Hocuspocus] Saved state for: ${documentName}`);
@@ -57,14 +78,15 @@ function startHocuspocus(httpServer) {
     },
 
     async onDisconnect({ documentName, context }) {
+      // FIX BUG 13: wire presence so userLeft is actually called
       if (context?.user) {
+        userLeft(documentName, context.user._id);
         console.log(`[Hocuspocus] ${context.user.name} left room: ${documentName}`);
       }
     }
   });
 
   // Attach to the existing HTTP server via a ws.WebSocketServer
-  // handleConnection(websocket, request) is the correct Hocuspocus v2 API
   const wss = new WebSocket.Server({ noServer: true });
 
   httpServer.on('upgrade', (request, socket, head) => {

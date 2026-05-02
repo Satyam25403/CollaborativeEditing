@@ -1,36 +1,46 @@
-const express = require('express');
+const express    = require('express');
 const { randomUUID } = require('crypto');
-const Session = require('../models/Session');
+const Session    = require('../models/Session');
 const authMiddleware = require('../middleware/auth');
 
 const router = express.Router();
 
-// GET /api/sessions - list sessions the user owns or is participant in
+// GET /api/sessions — list sessions the user owns or participates in
 router.get('/', authMiddleware, async (req, res) => {
   try {
     const sessions = await Session.find({
       $or: [{ owner: req.user._id }, { participants: req.user._id }]
-    }).populate('owner', 'name email avatarColor').populate('documentId');
+    })
+      .populate('owner', 'name email avatarColor')
+      .populate('documentId');
     res.json(sessions);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
 
-// POST /api/sessions - create new session
+// POST /api/sessions — create a new session
+// FIX BUG 11: the response now always includes roomId so the extension
+//             can use the server-generated UUID as the Yjs room key,
+//             instead of the human-readable name.
 router.post('/', authMiddleware, async (req, res) => {
   try {
     const { name, isPublic } = req.body;
     if (!name) return res.status(400).json({ error: 'Session name required' });
 
-    const roomId = randomUUID();
+    const roomId  = randomUUID();
     const session = await Session.create({
       roomId,
       name,
-      owner: req.user._id,
+      owner:        req.user._id,
       participants: [req.user._id],
-      isPublic: isPublic || false
+      isPublic:     isPublic || false
     });
+
+    // Populate owner so the client has the full object immediately
+    await session.populate('owner', 'name email avatarColor');
+
+    // roomId is included in the populated document — no extra step needed
     res.status(201).json(session);
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -41,7 +51,7 @@ router.post('/', authMiddleware, async (req, res) => {
 router.get('/:roomId', authMiddleware, async (req, res) => {
   try {
     const session = await Session.findOne({ roomId: req.params.roomId })
-      .populate('owner', 'name email avatarColor')
+      .populate('owner',        'name email avatarColor')
       .populate('participants', 'name email avatarColor')
       .populate('documentId');
     if (!session) return res.status(404).json({ error: 'Session not found' });
@@ -51,7 +61,7 @@ router.get('/:roomId', authMiddleware, async (req, res) => {
   }
 });
 
-// DELETE /api/sessions/:roomId
+// DELETE /api/sessions/:roomId — owner only
 router.delete('/:roomId', authMiddleware, async (req, res) => {
   try {
     const session = await Session.findOne({ roomId: req.params.roomId });

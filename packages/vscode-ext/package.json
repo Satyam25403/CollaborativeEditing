@@ -2,18 +2,21 @@
   "name": "collab-code",
   "displayName": "CollabCode",
   "description": "Real-time collaborative editing for VS Code",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "engines": { "vscode": "^1.85.0" },
   "categories": ["Other"],
   "activationEvents": ["onStartupFinished"],
   "main": "./src/extension.js",
+  "repository": { "type": "git", "url": "https://github.com/your-username/CollaborativeEditing" },
   "contributes": {
     "commands": [
-      { "command": "collabcode.startSession", "title": "CollabCode: Start Session" },
-      { "command": "collabcode.joinSession",  "title": "CollabCode: Join Session"  },
-      { "command": "collabcode.leaveSession", "title": "CollabCode: Leave Session" },
-      { "command": "collabcode.copyInvite",   "title": "CollabCode: Copy Invite Link" },
-      { "command": "collabcode.logout",       "title": "CollabCode: Logout" }
+      { "command": "collabcode.startSession",  "title": "CollabCode: Start Session (single file)" },
+      { "command": "collabcode.joinSession",   "title": "CollabCode: Join Session (single file)"  },
+      { "command": "collabcode.hostProject",   "title": "CollabCode: Host Project (entire folder)" },
+      { "command": "collabcode.joinProject",   "title": "CollabCode: Join Project (entire folder)" },
+      { "command": "collabcode.leaveSession",  "title": "CollabCode: Leave Session" },
+      { "command": "collabcode.copyInvite",    "title": "CollabCode: Copy Invite Link" },
+      { "command": "collabcode.logout",        "title": "CollabCode: Logout" }
     ],
     "viewsContainers": {
       "activitybar": [
@@ -43,7 +46,7 @@
   },
   "dependencies": {
     "yjs": "^13.6.14",
-    "y-websocket": "^1.5.4",
+    "y-websocket": "^2.0.4",
     "axios": "^1.7.2",
     "ws": "^8.17.0"
   }
