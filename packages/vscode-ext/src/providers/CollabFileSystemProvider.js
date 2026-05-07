@@ -1,48 +1,22 @@
 const vscode = require('vscode');
 const path   = require('path');
 
-/**
- * CollabFileSystemProvider
- *
- * Implements vscode.FileSystemProvider for the `collab:/` URI scheme.
- * The HOST registers all files from their workspace into this provider.
- * The JOINER mounts `collab:/` as their workspace root and sees all files
- * in real time — every Yjs text update fires a change event that VS Code
- * picks up automatically.
- *
- * URI format:  collab:/<roomId>/<relative-file-path>
- * Example:     collab:/abc-123/src/index.js
- */
 class CollabFileSystemProvider {
   constructor() {
-    this._emitter   = new vscode.EventEmitter();
-    this.onDidChangeFile = this._emitter.event;
-
-    // Map of uriString -> { content: Buffer, ytext: Y.Text | null }
-    this._files = new Map();
-    // Map of uriString -> Y.Text observer function (for cleanup)
-    this._observers = new Map();
+    this._emitter        = new vscode.EventEmitter();
+    this.onDidChangeFile  = this._emitter.event;
+    this._files           = new Map();  // uriString -> { content: Buffer, ytext }
+    this._observers       = new Map();  // uriString -> { ytext, observer }
   }
 
-  // ── Registration ──────────────────────────────────────────────────────────
-
-  /**
-   * Register a file into the virtual FS and bind its Yjs text.
-   * Called by YjsProvider for every file in the session.
-   * @param {vscode.Uri} uri       collab:/roomId/rel/path
-   * @param {string}     content   initial file content
-   * @param {object}     ytext     Y.Text instance for this file
-   */
   registerFile(uri, content, ytext) {
     const key = uri.toString();
     this._files.set(key, { content: Buffer.from(content, 'utf8'), ytext });
 
-    // Observer: when remote Yjs changes arrive, update buffer and notify VS Code
     const observer = () => {
-      const newContent = ytext.toString();
       const entry = this._files.get(key);
       if (!entry) return;
-      entry.content = Buffer.from(newContent, 'utf8');
+      entry.content = Buffer.from(ytext.toString(), 'utf8');
       this._emitter.fire([{ type: vscode.FileChangeType.Changed, uri }]);
     };
 
@@ -50,9 +24,6 @@ class CollabFileSystemProvider {
     this._observers.set(key, { ytext, observer });
   }
 
-  /**
-   * Update a file's buffer when the local user edits it (host side).
-   */
   updateFile(uri, content) {
     const key   = uri.toString();
     const entry = this._files.get(key);
@@ -62,22 +33,18 @@ class CollabFileSystemProvider {
     }
   }
 
-  /**
-   * List all registered file URIs (for building the file tree).
-   */
   getAllUris() {
     return Array.from(this._files.keys()).map(s => vscode.Uri.parse(s));
   }
 
-  // ── vscode.FileSystemProvider implementation ──────────────────────────────
-
   watch() {
-    // VS Code calls this — we handle changes via _emitter so just return a no-op disposable
     return new vscode.Disposable(() => {});
   }
 
   stat(uri) {
     const key = uri.toString();
+
+    // Exact file match
     if (this._files.has(key)) {
       return {
         type:  vscode.FileType.File,
@@ -86,17 +53,29 @@ class CollabFileSystemProvider {
         size:  this._files.get(key).content.length
       };
     }
-    // Return directory stat for any path that is a prefix of a registered file
+
+    // BUG 5 FIX: check if this uri is a prefix of any registered file (= directory)
     const prefix = key.endsWith('/') ? key : key + '/';
     const isDir  = Array.from(this._files.keys()).some(k => k.startsWith(prefix));
-    if (isDir || key.split('/').length <= 4) {   // root + roomId level = always dir
+
+    if (isDir) {
       return { type: vscode.FileType.Directory, ctime: 0, mtime: 0, size: 0 };
     }
+
+    // BUG 5 FIX: also treat the root and roomId level as directories
+    // collab:/ has 2 segments, collab:/roomId has 3 segments
+    // Count meaningful path parts (filter empty strings from split)
+    const parts = key.replace(/^collab:\/\//, '').replace(/^collab:\//, '').split('/').filter(Boolean);
+    if (parts.length <= 1) {
+      return { type: vscode.FileType.Directory, ctime: 0, mtime: 0, size: 0 };
+    }
+
     throw vscode.FileSystemError.FileNotFound(uri);
   }
 
   readDirectory(uri) {
-    const prefix = uri.toString().endsWith('/') ? uri.toString() : uri.toString() + '/';
+    const uriStr = uri.toString();
+    const prefix = uriStr.endsWith('/') ? uriStr : uriStr + '/';
     const seen   = new Set();
     const result = [];
 
@@ -105,7 +84,7 @@ class CollabFileSystemProvider {
       const rest  = key.slice(prefix.length);
       const parts = rest.split('/');
       const name  = parts[0];
-      if (seen.has(name)) continue;
+      if (!name || seen.has(name)) continue;
       seen.add(name);
       const type = parts.length === 1 ? vscode.FileType.File : vscode.FileType.Directory;
       result.push([name, type]);
@@ -120,15 +99,13 @@ class CollabFileSystemProvider {
   }
 
   writeFile(uri, content) {
-    // Called when the joiner edits a file — push change into Yjs
     const key   = uri.toString();
     const entry = this._files.get(key);
     if (!entry) throw vscode.FileSystemError.FileNotFound(uri);
 
-    const newContent = Buffer.from(content).toString('utf8');
-    entry.content    = Buffer.from(newContent, 'utf8');
+    const newContent  = Buffer.from(content).toString('utf8');
+    entry.content     = Buffer.from(newContent, 'utf8');
 
-    // Push into Yjs so it replicates to all peers
     if (entry.ytext) {
       const current = entry.ytext.toString();
       if (current !== newContent) {
@@ -140,7 +117,6 @@ class CollabFileSystemProvider {
     }
   }
 
-  // These are required by the interface but we keep them as no-ops for now
   createDirectory() {}
   delete()         {}
   rename()         {}
