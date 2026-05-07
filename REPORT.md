@@ -1,6 +1,7 @@
 # AgriTrace — Project Report Content
 
 **Agri Commodity Traceability and Inventory Management System Using Real-Time Data**
+
 **School of CSA, REVA University, Bangalore — 2025**
 
 ---
@@ -272,17 +273,6 @@ AgriTrace is an operational system rather than an analytical system, and therefo
 
 The seeding script, `seed.js`, is provided in the server directory and can be run with `node seed.js` to populate a fresh MongoDB database with representative data for demonstration and testing.
 
-*(ER diagram of database)*
-
-The diagram shows all six MongoDB collections with their fields, document counts (×5, ×6, ×17 etc.), and every relationship:
-
-User → Batch (1 creates many) via createdBy
-User → Shipment (1 creates many) via createdBy
-User → ProcessingLog (1 operates many) via operatorId
-Supplier → Batch (referenced inside origins[] sub-document array) — dashed line indicating an embedded reference rather than a foreign key join
-Batch → ProcessingLog (1 has many) via batchId
-Batch → Inventory (1 : 1 unique) via batchId
-Batch → Shipment (1 has many) via batchId
 ---
 
 ### 5.2 DATA PROFILING
@@ -303,6 +293,17 @@ Batch → Shipment (1 has many) via batchId
 - Each Inventory record has a unique one-to-one reference to a Batch.
 - Each Shipment references a Batch and a User (createdBy).
 
+*(ER diagram of database)*
+
+The diagram shows all six MongoDB collections with their fields, document counts (×5, ×6, ×17 etc.), and every relationship:
+
+- User → Batch (1 creates many) via createdBy
+- User → Shipment (1 creates many) via createdBy
+- User → ProcessingLog (1 operates many) via operatorId
+- Supplier → Batch (referenced inside origins[] sub-document array) — dashed line indicating an embedded reference rather than a foreign key join
+- Batch → ProcessingLog (1 has many) via batchId
+- Batch → Inventory (1 : 1 unique) via batchId
+- Batch → Shipment (1 has many) via batchId
 ---
 
 ### 5.3 DATA CLEANING AND PREPROCESSING
